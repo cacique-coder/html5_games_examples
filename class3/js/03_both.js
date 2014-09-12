@@ -32,12 +32,28 @@ var SceneMain = Class.create(Scene, {
       this.m_LasersPlayer[i] = new Laser(this.m_Game, "green");
       this.addChild(this.m_LasersPlayer[i]);
     }
+    this.addEventListener(Event.ENTER_FRAME, this.update);
   },
   update: function (evt) {
     var deltaTime = evt.elapsed / 1000;
     this.m_Player.update(deltaTime);
     for (var i = 0; i < this.m_LasersPlayerNum; i++) {
       this.m_LasersPlayer[i].update(deltaTime);
+    }
+  },
+  shootLaser: function (color, x) {
+    if (color === "green") {
+      if (this.m_LasersPlayerLeft > 0) {
+        this.m_LasersPlayerLeft--;
+        for (var i = 0; i < this.m_LasersPlayerNum; i++) {
+          if (!this.m_LasersPlayer[i].m_Alive) {
+            var y = this.m_Game.height;
+            y -= this.m_Player.height;
+            this.m_LasersPlayer[i].shoot(x, y);
+            break;
+          }
+        }
+      }
     }
   }
 });
@@ -61,11 +77,9 @@ var Player = Class.create(Sprite, {
       this.x = this.width * 0.5;
     }
   },
-  shootLaser: function () {
-    this.parentNode.addChild(new Laser());
-  },
   touchStart: function (evt) {
     this.x = evt.x - this.width * 0.5;
+    this.parentNode.shootLaser("green", evt.x);
   },
   touchMove: function (evt) {
     this.x = evt.x - this.width * 0.5;
@@ -78,7 +92,7 @@ var Laser = Class.create(Sprite, {
     this.m_Game = gameObj;
     this.m_Color = color;
     this.m_Alive = false;
-    this.m_Speed = 100;
+    this.m_Speed = 500;
     this.m_VelY = -1.0;
     var png;
     if (this.m_Color === "green") {
@@ -90,11 +104,24 @@ var Laser = Class.create(Sprite, {
     this.image = png;
   },
   shoot: function (x, y) {
-
+    this.x = x - this.width * 0.5;
+    this.y = y;
+    this.m_Alive = true;
   },
   update: function (deltaTime) {
     if (this.m_Alive) {
       this.y += this.m_VelY * this.m_Speed * deltaTime;
+      if (this.m_Color === "green") {
+        if (this.y <= 0) {
+          this.m_Alive = false;
+          this.parentNode.m_LasersPlayerLeft++;
+        }
+      } else {
+        if (this.y >= this.m_Game.height) {
+          this.m_Alive = false;
+          this.parentNode.m_LasersPlayerLeft++;
+        }
+      }
     } else {
       this.x = -1000;
       this.y = -1000;
